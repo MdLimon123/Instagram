@@ -2,12 +2,23 @@ import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:instagram/models/user.dart';
 import 'package:instagram/resources/storage_method.dart';
 
 class AuthMethods {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+
+  Future<UserModel> getUserDetails()async{
+    User currentUser = _auth.currentUser!;
+
+    DocumentSnapshot snap = await _firestore.collection('users').doc(currentUser.uid).get();
+
+    return UserModel.fromSnap(snap);
+
+  }
 
   // sign up user
 
@@ -33,16 +44,16 @@ class AuthMethods {
             await StorageMethod().uploadImageStorage('profilePic', file, false);
 
         // add user to our database
+        UserModel user = UserModel(
+            email: email,
+            uid: cred.user!.uid,
+            username: username,
+            photoUrl: photoUrl,
+            bio: bio,
+            followers: [],
+            following: []);
 
-        _firestore.collection('users').doc(cred.user!.uid).set({
-          'username': username,
-          'uid': cred.user!.uid,
-          'email': email,
-          'bio': bio,
-          'followers': [],
-          'following': [],
-          'photoUrl': photoUrl,
-        });
+        _firestore.collection('users').doc(cred.user!.uid).set(user.toJson());
 
         res = "success";
       }
@@ -66,8 +77,7 @@ class AuthMethods {
       } else {
         res = "Please enter all the fields";
       }
-    }
-     catch (err) {
+    } catch (err) {
       res = err.toString();
     }
     return res;
